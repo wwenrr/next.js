@@ -8,18 +8,23 @@ use turbo_tasks::{TaskId, backend::CachedTaskType};
 
 use crate::{
     backend::{AnyOperation, SpecificTaskDataCategory, storage_schema::TaskStorage},
-    utils::chunked_vec::ChunkedVec,
+    kv_backing_storage::TaskTypeHash,
 };
 
+/// A single item yielded by the snapshot iterator during persistence.
 pub struct SnapshotItem {
     pub task_id: TaskId,
-    pub data: Option<TurboBincodeBuffer>,
+    /// Serialized task meta data, if modified
     pub meta: Option<TurboBincodeBuffer>,
+    /// Serialized task data, if modified
+    pub data: Option<TurboBincodeBuffer>,
+    /// Task type for new tasks that need to be added to the task cache
+    pub task_type_hash: Option<TaskTypeHash>,
 }
 
 impl SnapshotItem {
     pub fn is_empty(&self) -> bool {
-        self.meta.is_none() && self.data.is_none()
+        self.meta.is_none() && self.data.is_none() && self.task_type_hash.is_none()
     }
 }
 
@@ -55,12 +60,7 @@ pub trait BackingStorageSealed: 'static + Send + Sync {
     fn next_free_task_id(&self) -> Result<TaskId>;
     fn uncompleted_operations(&self) -> Result<Vec<AnyOperation>>;
 
-    fn save_snapshot<I>(
-        &self,
-        operations: Vec<Arc<AnyOperation>>,
-        task_cache_updates: Vec<ChunkedVec<(Arc<CachedTaskType>, TaskId)>>,
-        snapshots: Vec<I>,
-    ) -> Result<()>
+    fn save_snapshot<I>(&self, operations: Vec<Arc<AnyOperation>>, snapshots: Vec<I>) -> Result<()>
     where
         I: IntoIterator<Item = SnapshotItem> + Send + Sync;
     /// Returns all task IDs that match the given task type (hash collision candidates).
@@ -118,18 +118,12 @@ where
         either::for_both!(self, this => this.uncompleted_operations())
     }
 
-    fn save_snapshot<I>(
-        &self,
-        operations: Vec<Arc<AnyOperation>>,
-        task_cache_updates: Vec<ChunkedVec<(Arc<CachedTaskType>, TaskId)>>,
-        snapshots: Vec<I>,
-    ) -> Result<()>
+    fn save_snapshot<I>(&self, operations: Vec<Arc<AnyOperation>>, snapshots: Vec<I>) -> Result<()>
     where
         I: IntoIterator<Item = SnapshotItem> + Send + Sync,
     {
         either::for_both!(self, this => this.save_snapshot(
             operations,
-            task_cache_updates,
             snapshots,
         ))
     }
