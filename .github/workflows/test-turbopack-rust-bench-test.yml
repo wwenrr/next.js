@@ -15,8 +15,13 @@ on:
 env:
   TURBOPACK_BENCH_COUNTS: '100'
   TURBOPACK_BENCH_PROGRESS: '1'
-
   NODE_LTS_VERSION: 20
+
+  # Turborepo remote cache config
+  TURBO_API: 'https://vercel.com'
+  TURBO_TEAM: 'vtest314-next-e2e-tests'
+  TURBO_CACHE: 'remote:rw'
+  TURBO_TOKEN: ${{ secrets.TURBO_REMOTE_CACHE_TOKEN }}
 
 jobs:
   test:
@@ -46,6 +51,11 @@ jobs:
       - run: pnpm install
         working-directory: turbopack/benchmark-apps
 
+      - name: Start sccache
+        uses: ./.github/actions/sccache
+        with:
+          mode: start
+
       - name: Build benchmarks for tests
         timeout-minutes: 120
         run: |
@@ -67,3 +77,9 @@ jobs:
         timeout-minutes: 120
         run: |
           cargo test --benches --release -p turbopack-bench
+
+      - name: Stop sccache
+        uses: ./.github/actions/sccache
+        if: always()
+        with:
+          mode: stop

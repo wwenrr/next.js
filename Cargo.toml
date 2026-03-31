@@ -46,7 +46,7 @@ opt-level = 1
 
 # Set the settings for build scripts and proc-macros.
 [profile.dev.build-override]
-opt-level = 3
+opt-level = 1
 
 [profile.dev-with-debug]
 inherits = "dev"
@@ -66,6 +66,13 @@ lto = "thin"
 # this _should_ have similar effect to fat LTO.
 codegen-units = 1
 
+# Proc-macros and build scripts: optimize for fast execution in release
+# (they run hundreds of times per build). CI profiles use opt-level=1 for
+# faster compilation. debug-assertions disabled (not needed at compile time).
+[profile.release.build-override]
+opt-level = 3
+debug-assertions = false
+
 # Use a custom profile for CI or local testing where we are somewhat performance
 # sensitive but we still want the additional validation of debug-assertions.
 #
@@ -81,6 +88,10 @@ lto = false
 # More codegen units = faster compilation. Without LTO there's no cross-CGU
 # optimization recovery, but this profile prioritizes build speed over perf.
 codegen-units = 64
+
+[profile.release-with-assertions.build-override]
+opt-level = 3
+debug-assertions = false
 
 [profile.release-with-debug]
 inherits = "release"

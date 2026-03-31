@@ -32,7 +32,9 @@ concurrent-queue = { workspace = true }
 dashmap = { workspace = true }
 dunce = { workspace = true }
 futures = { workspace = true }
-include_dir = { version = "0.7.3", features = ["nightly"] }
+# nightly feature removed: it uses embed_directory! which causes sccache to
+# try reading a directory as a file ("Is a directory" error).
+include_dir = "0.7.3"
 indexmap = { workspace = true }
 jsonc-parser = { version = "0.26.3", features = ["serde"] }
 mime = { workspace = true }

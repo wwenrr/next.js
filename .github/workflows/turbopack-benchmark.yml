@@ -22,8 +22,11 @@ env:
   CARGO_INCREMENTAL: 0
   # For faster CI
   RUST_LOG: 'off'
-  TURBO_TEAM: 'vercel'
+  # Turborepo remote cache config
+  TURBO_API: 'https://vercel.com'
+  TURBO_TEAM: 'vtest314-next-e2e-tests'
   TURBO_CACHE: 'remote:rw'
+  TURBO_TOKEN: ${{ secrets.TURBO_REMOTE_CACHE_TOKEN }}
 
 jobs:
   benchmark-small-apps:
@@ -40,12 +43,10 @@ jobs:
         with:
           tool: cargo-codspeed@3.0.5
 
-      - name: Cache on ${{ github.ref_name }}
-        uses: ijjk/rust-cache@a34594c450817c9860143c79797a8770c4e587f5 # turbo-cache-v1.0.9
+      - name: Start sccache
+        uses: ./.github/actions/sccache
         with:
-          save-if: 'true'
-          cache-provider: 'turbo'
-          shared-key: build-turbopack-benchmark-small-apps-${{ hashFiles('.cargo/config.toml') }}
+          mode: start
 
       - name: Install pnpm dependencies
         working-directory: turbopack/benchmark-apps
@@ -66,6 +67,12 @@ jobs:
           run: cargo codspeed run -p turbopack-cli small_apps
           token: ${{ secrets.CODSPEED_TOKEN }}
 
+      - name: Stop sccache
+        uses: ./.github/actions/sccache
+        if: always()
+        with:
+          mode: stop
+
   benchmark-analyzer:
     name: Benchmark Rust Crates (analyzer)
     runs-on: ['self-hosted', 'linux', 'x64', 'metal']
@@ -80,12 +87,10 @@ jobs:
         with:
           tool: cargo-codspeed@3.0.5
 
-      - name: Cache on ${{ github.ref_name }}
-        uses: ijjk/rust-cache@a34594c450817c9860143c79797a8770c4e587f5 # turbo-cache-v1.0.9
+      - name: Start sccache
+        uses: ./.github/actions/sccache
         with:
-          save-if: 'true'
-          cache-provider: 'turbo'
-          shared-key: build-turbopack-benchmark-analyzer-${{ hashFiles('.cargo/config.toml') }}
+          mode: start
 
       - name: Install pnpm dependencies
         working-directory: turbopack/benchmark-apps
@@ -106,6 +111,12 @@ jobs:
           run: cargo codspeed run -p turbopack-ecmascript references
           token: ${{ secrets.CODSPEED_TOKEN }}
 
+      - name: Stop sccache
+        uses: ./.github/actions/sccache
+        if: always()
+        with:
+          mode: stop
+
   benchmark-large:
     name: Benchmark Rust Crates (large)
     if: ${{ github.event.label.name == 'benchmark' || github.event_name == 'workflow_dispatch' }}
@@ -121,6 +132,11 @@ jobs:
         with:
           tool: cargo-codspeed@3.0.5
 
+      - name: Start sccache
+        uses: ./.github/actions/sccache
+        with:
+          mode: start
+
       - name: Build the benchmark target(s)
         env:
           CODSPEED_RUNNER_MODE: instrumentation
@@ -132,3 +148,9 @@ jobs:
           mode: instrumentation
           run: cargo codspeed run
           token: ${{ secrets.CODSPEED_TOKEN }}
+
+      - name: Stop sccache
+        uses: ./.github/actions/sccache
+        if: always()
+        with:
+          mode: stop

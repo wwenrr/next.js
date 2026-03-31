@@ -50,7 +50,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends \
     nodejs \
-    clang lld llvm pkg-config wget git xz-utils \
+    clang lld llvm pkg-config wget git xz-utils libssl-dev \
     crossbuild-essential-amd64 crossbuild-essential-arm64 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -85,13 +85,15 @@ RUN rustup target add \
     x86_64-unknown-linux-musl \
     aarch64-unknown-linux-musl
 
-# Install @napi-rs/cli and cargo-rustflags globally.
-# cargo-rustflags resolves the effective RUSTFLAGS for a target by querying
-# cargo's own config resolution (handles cfg() predicates, --config overlays).
+# Install @napi-rs/cli, cargo-rustflags, and sccache.
+# Use cargo-binstall for sccache (pre-built binary, much faster than compiling).
 RUN npm i -g @napi-rs/cli@2.18.4 && \
-    cargo install cargo-rustflags
+    cargo install cargo-rustflags && \
+    BINSTALL_ARCH=$(uname -m) && \
+    curl -fsSL "https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-${BINSTALL_ARCH}-unknown-linux-musl.tgz" | tar xz -C /root/.cargo/bin && \
+    cargo binstall sccache@0.14.0 --no-confirm
 
 # Verify installations
-RUN node --version && rustc --version && napi -h > /dev/null && cargo rustflags --help > /dev/null
+RUN node --version && rustc --version && napi -h > /dev/null && cargo rustflags --help > /dev/null && sccache --version
 
 WORKDIR /build

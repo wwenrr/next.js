@@ -24,6 +24,7 @@
     "build-native-auto": {
       "dependsOn": ["rust-fingerprint"],
       "inputs": ["../../target/.rust-fingerprint"],
+      "env": ["CI"],
       "outputs": [
         "native/*.node",
         "native/index.d.ts",
@@ -33,36 +34,43 @@
     "build-native": {
       "dependsOn": ["rust-fingerprint"],
       "inputs": ["../../target/.rust-fingerprint"],
+      "env": ["CI"],
       "outputs": ["native/*.node", "native/index.d.ts"],
     },
     "build-native-release": {
       "dependsOn": ["rust-fingerprint"],
       "inputs": ["../../target/.rust-fingerprint"],
+      "env": ["CI"],
       "outputs": ["native/*.node", "native/index.d.ts"],
     },
     "build-native-release-with-assertions": {
       "dependsOn": ["rust-fingerprint"],
       "inputs": ["../../target/.rust-fingerprint"],
+      "env": ["CI"],
       "outputs": ["native/*.node", "native/index.d.ts"],
     },
     "build-native-no-plugin": {
       "dependsOn": ["rust-fingerprint"],
       "inputs": ["../../target/.rust-fingerprint"],
+      "env": ["CI"],
       "outputs": ["native/*.node", "native/index.d.ts"],
     },
     "build-native-no-plugin-release": {
       "dependsOn": ["rust-fingerprint"],
       "inputs": ["../../target/.rust-fingerprint"],
+      "env": ["CI"],
       "outputs": ["native/*.node", "native/index.d.ts"],
     },
     "build-wasm": {
       "dependsOn": ["rust-fingerprint"],
       "inputs": ["../../target/.rust-fingerprint"],
+      "env": ["CI"],
       "outputs": ["../../crates/wasm/pkg/*"],
     },
     "build-native-wasi": {
       "dependsOn": ["rust-fingerprint"],
       "inputs": ["../../target/.rust-fingerprint"],
+      "env": ["CI"],
       "outputs": ["native/*"],
     },
     "cache-build-native": {

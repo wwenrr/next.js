@@ -1,0 +1,53 @@
+name: 'sccache with Vercel Artifacts'
+description: 'Start sccache with multi-level disk+Vercel Artifacts caching for per-crate Rust compilation caching. Call with mode=start before builds and mode=stop after. Requires TURBO_TOKEN and TURBO_TEAM env vars to be set at the workflow level.'
+inputs:
+  mode:
+    description: '"start" to launch sccache, "stop" to print stats and shut down'
+    required: true
+  base-dir:
+    description: 'SCCACHE_BASE_DIR for path normalization (default: $GITHUB_WORKSPACE)'
+    required: false
+    default: ''
+runs:
+  using: 'composite'
+  steps:
+    - name: Install sccache (vercel fork)
+      if: ${{ inputs.mode == 'start' }}
+      shell: bash
+      run: |
+        cargo install --force --git https://github.com/vercel/sccache sccache --locked
+
+    - name: Set sccache env vars
+      if: ${{ inputs.mode == 'start' }}
+      shell: bash
+      run: |
+        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+        echo "SCCACHE_BASE_DIR=${{ inputs.base-dir || github.workspace }}" >> $GITHUB_ENV
+        echo "CARGO_INCREMENTAL=0" >> $GITHUB_ENV
+        echo "SCCACHE_IDLE_TIMEOUT=0" >> $GITHUB_ENV
+
+        # Multi-level cache: fast local disk L0 + Vercel Artifacts remote L1
+        echo "SCCACHE_MULTILEVEL_CHAIN=disk,vercel_artifacts" >> $GITHUB_ENV
+        echo "SCCACHE_DIR=${RUNNER_TEMP}/sccache" >> $GITHUB_ENV
+
+        # Vercel Artifacts backend (native in vercel/sccache fork)
+        echo "SCCACHE_VERCEL_ARTIFACTS_TOKEN=${TURBO_TOKEN}" >> $GITHUB_ENV
+        echo "SCCACHE_VERCEL_ARTIFACTS_TEAM_ID=${TURBO_TEAM}" >> $GITHUB_ENV
+
+        # Allow caching of all crate types (proc-macros, cdylibs, bins)
+        echo "SCCACHE_RUST_CRATE_TYPE_ALLOW_HASH=v1" >> $GITHUB_ENV
+
+    - name: Start sccache server
+      if: ${{ inputs.mode == 'start' }}
+      shell: bash
+      run: |
+        sccache --start-server 2>&1 || echo "sccache server may already be running"
+        sccache --show-stats 2>&1 | grep "Cache location"
+
+    - name: Stop sccache + show stats
+      if: ${{ inputs.mode == 'stop' }}
+      shell: bash
+      run: |
+        echo "=== sccache stats ==="
+        sccache --show-stats || true
+        sccache --stop-server 2>/dev/null || true
